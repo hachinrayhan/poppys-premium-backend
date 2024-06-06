@@ -32,12 +32,13 @@ const createToken = (user) =>
 
 const verifyToken = (req, res, next) => {
   const authToken = req.headers.authorization.split(" ")[1];
-  const decoded = jwt.verify(authToken, process.env.ACCESS_TOKEN);
-  if (!decoded.email) {
-    return res.send({ message: "Access Denied!" });
+  try {
+    const decoded = jwt.verify(authToken, process.env.ACCESS_TOKEN);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    res.status(403).send({ message: "Access Denied!" });
   }
-  req.user = decoded.email;
-  next();
 };
 
 async function run() {
@@ -48,15 +49,15 @@ async function run() {
     const poppysPremiumDB = client.db("poppysPremiumDB");
 
     const usersCollection = poppysPremiumDB.collection("usersCollection");
-    const shoesCollection = poppysPremiumDB.collection("shoesCollection");
+    const productsCollection = poppysPremiumDB.collection("productsCollection");
 
-    //users
+    // Users
     app.post("/users", async (req, res) => {
       const user = req.body;
       const token = createToken(user);
       const userExist = await usersCollection.findOne({ email: user.email });
       if (userExist) {
-        return res.send({ message: "user already exists", token });
+        return res.send({ message: "User already exists", token });
       }
       await usersCollection.insertOne(user);
       return res.send({ token });
@@ -77,7 +78,6 @@ async function run() {
     app.get("/users/:id", async (req, res) => {
       const id = new ObjectId(req.params.id);
       const result = await usersCollection.findOne({ _id: id });
-      console.log(result);
       return res.send(result);
     });
 
@@ -91,38 +91,40 @@ async function run() {
       return res.send(result);
     });
 
-    // products
-    app.post("/shoes", verifyToken, async (req, res) => {
-      const shoe = req.body;
-      const result = await shoesCollection.insertOne(shoe);
+    // Products
+    app.post("/products", verifyToken, async (req, res) => {
+      const product = req.body;
+      const result = await productsCollection.insertOne(product);
       return res.send(result);
     });
 
-    app.get("/shoes", async (req, res) => {
-      const shoes = shoesCollection.find();
-      const result = await shoes.toArray();
+    app.get("/products", async (req, res) => {
+      const products = productsCollection.find();
+      const result = await products.toArray();
       return res.send(result);
     });
 
-    app.get("/shoes/:id", async (req, res) => {
+    app.get("/products/:id", async (req, res) => {
       const id = req.params.id;
-      const shoe = await shoesCollection.findOne({ _id: new ObjectId(id) });
-      return res.send(shoe);
+      const product = await productsCollection.findOne({
+        _id: new ObjectId(id),
+      });
+      return res.send(product);
     });
 
-    app.patch("/shoes/:id", verifyToken, async (req, res) => {
+    app.patch("/products/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
       const updatedData = req.body;
-      const result = await shoesCollection.updateOne(
+      const result = await productsCollection.updateOne(
         { _id: new ObjectId(id) },
         { $set: updatedData }
       );
       return res.send(result);
     });
 
-    app.delete("/shoes/:id", verifyToken, async (req, res) => {
+    app.delete("/products/:id", verifyToken, async (req, res) => {
       const id = new ObjectId(req.params.id);
-      const result = await shoesCollection.deleteOne({ _id: id });
+      const result = await productsCollection.deleteOne({ _id: id });
       return res.send(result);
     });
   } finally {
