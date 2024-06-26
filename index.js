@@ -31,7 +31,7 @@ const createToken = (user) =>
   );
 
 const verifyToken = (req, res, next) => {
-  const authToken = req.headers.authorization.split(" ")[1];
+  const authToken = req?.headers?.authorization?.split(" ")[1];
   try {
     const decoded = jwt.verify(authToken, process.env.ACCESS_TOKEN);
     req.user = decoded;
@@ -43,13 +43,19 @@ const verifyToken = (req, res, next) => {
 
 async function run() {
   try {
-    await client.connect();
+    // await client.connect();
     console.log("Connected to MongoDB!");
 
     const poppysPremiumDB = client.db("poppysPremiumDB");
 
+    //collections
     const usersCollection = poppysPremiumDB.collection("usersCollection");
     const productsCollection = poppysPremiumDB.collection("productsCollection");
+    const ordersCollection = poppysPremiumDB.collection("ordersCollection");
+
+    app.get("/", (req, res) => {
+      res.send("Welcome to Poppy's Premium's Server");
+    });
 
     // Users
     app.post("/users", async (req, res) => {
@@ -67,6 +73,15 @@ async function run() {
       const users = usersCollection.find();
       const result = await users.toArray();
       return res.send(result);
+    });
+
+    app.get("/users/email", verifyToken, async (req, res) => {
+      const email = req.user.email; // Extract the email from the verified token
+      const user = await usersCollection.findOne({ email: email });
+      if (!user) {
+        return res.status(404).send({ message: "User not found" });
+      }
+      return res.send(user);
     });
 
     app.get("/users/email/:email", async (req, res) => {
@@ -125,6 +140,50 @@ async function run() {
     app.delete("/products/:id", verifyToken, async (req, res) => {
       const id = new ObjectId(req.params.id);
       const result = await productsCollection.deleteOne({ _id: id });
+      return res.send(result);
+    });
+
+    // Orders
+    app.post("/orders", verifyToken, async (req, res) => {
+      const order = req.body;
+      order.userEmail = req.user.email;
+      const result = await ordersCollection.insertOne(order);
+      return res.send(result);
+    });
+
+    app.get("/orders/user", verifyToken, async (req, res) => {
+      const userEmail = req.user.email;
+      const orders = await ordersCollection.find({ userEmail }).toArray();
+      return res.send(orders);
+    });
+
+    app.get("/orders", verifyToken, async (req, res) => {
+      const orders = ordersCollection.find();
+      const result = await orders.toArray();
+      return res.send(result);
+    });
+
+    app.get("/orders/:id", verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const order = await ordersCollection.findOne({
+        _id: new ObjectId(id),
+      });
+      return res.send(order);
+    });
+
+    app.patch("/orders/:id", verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const updatedData = req.body;
+      const result = await ordersCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: updatedData }
+      );
+      return res.send(result);
+    });
+
+    app.delete("/orders/:id", verifyToken, async (req, res) => {
+      const id = new ObjectId(req.params.id);
+      const result = await ordersCollection.deleteOne({ _id: id });
       return res.send(result);
     });
   } finally {
