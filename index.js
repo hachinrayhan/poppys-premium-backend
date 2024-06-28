@@ -69,7 +69,7 @@ async function run() {
       return res.send({ token });
     });
 
-    app.get("/users", async (req, res) => {
+    app.get("/users", verifyToken, async (req, res) => {
       const users = usersCollection.find();
       const result = await users.toArray();
       return res.send(result);
@@ -104,6 +104,17 @@ async function run() {
         { $set: updatedInfo }
       );
       return res.send(result);
+    });
+
+    // Update user role
+    app.patch("/users/:id/role", verifyToken, async (req, res) => {
+      const { id } = req.params;
+      const { role } = req.body;
+      const result = await usersCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: { role } }
+      );
+      res.send(result);
     });
 
     // Products
