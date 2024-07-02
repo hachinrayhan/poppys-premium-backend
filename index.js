@@ -197,6 +197,66 @@ async function run() {
       const result = await ordersCollection.deleteOne({ _id: id });
       return res.send(result);
     });
+
+    // Endpoint to order status data
+    app.get("/reports/order-status", verifyToken, async (req, res) => {
+      try {
+        const orderStatusReport = await ordersCollection
+          .aggregate([
+            {
+              $group: {
+                _id: "$status",
+                count: { $sum: 1 },
+              },
+            },
+          ])
+          .toArray();
+        res.json(orderStatusReport);
+      } catch (error) {
+        console.error("Error fetching order status report:", error);
+        res.status(500).json({ error: "Failed to fetch order status report" });
+      }
+    });
+
+    // Monthly user registrations
+    app.get("/reports/monthly-registrations", async (req, res) => {
+      try {
+        const data = await usersCollection
+          .aggregate([
+            {
+              $group: {
+                _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
+                count: { $sum: 1 },
+              },
+            },
+            { $sort: { _id: 1 } },
+          ])
+          .toArray();
+        res.json(data);
+      } catch (err) {
+        res.status(500).json({ error: err.message });
+      }
+    });
+
+    // Weekly user registrations
+    app.get("/reports/weekly-registrations", async (req, res) => {
+      try {
+        const data = await usersCollection
+          .aggregate([
+            {
+              $group: {
+                _id: { $isoWeek: "$createdAt" },
+                count: { $sum: 1 },
+              },
+            },
+            { $sort: { _id: 1 } },
+          ])
+          .toArray();
+        res.json(data);
+      } catch (err) {
+        res.status(500).json({ error: err.message });
+      }
+    });
   } finally {
     // await client.close();
   }
