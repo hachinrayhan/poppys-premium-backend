@@ -60,6 +60,7 @@ async function run() {
     // Users
     app.post("/users", async (req, res) => {
       const user = req.body;
+      user.createdAt = new Date();
       const token = createToken(user);
       const userExist = await usersCollection.findOne({ email: user.email });
       if (userExist) {
