@@ -60,6 +60,7 @@ async function run() {
     // Users
     app.post("/users", async (req, res) => {
       const user = req.body;
+      user.role = "user";
       user.createdAt = new Date();
       const token = createToken(user);
       const userExist = await usersCollection.findOne({ email: user.email });
@@ -225,6 +226,13 @@ async function run() {
         const data = await usersCollection
           .aggregate([
             {
+              $addFields: {
+                createdAt: {
+                  $convert: { input: "$createdAt", to: "date" },
+                },
+              },
+            },
+            {
               $group: {
                 _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
                 count: { $sum: 1 },
@@ -235,6 +243,10 @@ async function run() {
           .toArray();
         res.json(data);
       } catch (err) {
+        console.error(
+          "Error fetching monthly registrations data:",
+          err.message
+        );
         res.status(500).json({ error: err.message });
       }
     });
@@ -244,6 +256,13 @@ async function run() {
       try {
         const data = await usersCollection
           .aggregate([
+            {
+              $addFields: {
+                createdAt: {
+                  $convert: { input: "$createdAt", to: "date" },
+                },
+              },
+            },
             {
               $group: {
                 _id: { $isoWeek: "$createdAt" },
@@ -255,6 +274,7 @@ async function run() {
           .toArray();
         res.json(data);
       } catch (err) {
+        console.error("Error fetching weekly registrations data:", err.message);
         res.status(500).json({ error: err.message });
       }
     });
