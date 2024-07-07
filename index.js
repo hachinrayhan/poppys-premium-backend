@@ -156,6 +156,25 @@ async function run() {
       return res.send(result);
     });
 
+    //Search products by name or category
+    app.get("/search/products", async (req, res) => {
+      const { name, category } = req.query;
+      const query = {
+        $or: [
+          { name: { $regex: name, $options: "i" } },
+          { category: { $regex: category, $options: "i" } },
+        ],
+      };
+
+      try {
+        const products = await productsCollection.find(query).toArray();
+        res.send(products);
+      } catch (error) {
+        console.error("Error searching products:", error);
+        res.status(500).send({ message: "Failed to search products" });
+      }
+    });
+
     // Orders
     app.post("/orders", verifyToken, async (req, res) => {
       const order = req.body;
