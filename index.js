@@ -93,13 +93,13 @@ async function run() {
     });
 
     app.get("/users/:id", async (req, res) => {
-      const id = new ObjectId(req.params.id);
+      const id = ObjectId.createFromHexString(req.params.id);
       const result = await usersCollection.findOne({ _id: id });
       return res.send(result);
     });
 
     app.patch("/users/:id", async (req, res) => {
-      const id = new ObjectId(req.params.id);
+      const id = ObjectId.createFromHexString(req.params.id);
       const updatedInfo = req.body;
       const result = await usersCollection.updateOne(
         { _id: id },
@@ -113,7 +113,7 @@ async function run() {
       const { id } = req.params;
       const { role } = req.body;
       const result = await usersCollection.updateOne(
-        { _id: new ObjectId(id) },
+        { _id: ObjectId.createFromHexString(id) },
         { $set: { role } }
       );
       res.send(result);
@@ -135,7 +135,7 @@ async function run() {
     app.get("/products/:id", async (req, res) => {
       const id = req.params.id;
       const product = await productsCollection.findOne({
-        _id: new ObjectId(id),
+        _id: ObjectId.createFromHexString(id),
       });
       return res.send(product);
     });
@@ -144,14 +144,14 @@ async function run() {
       const id = req.params.id;
       const updatedData = req.body;
       const result = await productsCollection.updateOne(
-        { _id: new ObjectId(id) },
+        { _id: ObjectId.createFromHexString(id) },
         { $set: updatedData }
       );
       return res.send(result);
     });
 
     app.delete("/products/:id", verifyToken, async (req, res) => {
-      const id = new ObjectId(req.params.id);
+      const id = ObjectId.createFromHexString(req.params.id);
       const result = await productsCollection.deleteOne({ _id: id });
       return res.send(result);
     });
@@ -198,7 +198,7 @@ async function run() {
     app.get("/orders/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
       const order = await ordersCollection.findOne({
-        _id: new ObjectId(id),
+        _id: ObjectId.createFromHexString(id),
       });
       return res.send(order);
     });
@@ -207,14 +207,14 @@ async function run() {
       const id = req.params.id;
       const updatedData = req.body;
       const result = await ordersCollection.updateOne(
-        { _id: new ObjectId(id) },
+        { _id: ObjectId.createFromHexString(id) },
         { $set: updatedData }
       );
       return res.send(result);
     });
 
     app.delete("/orders/:id", verifyToken, async (req, res) => {
-      const id = new ObjectId(req.params.id);
+      const id = ObjectId.createFromHexString(req.params.id);
       const result = await ordersCollection.deleteOne({ _id: id });
       return res.send(result);
     });
