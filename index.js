@@ -158,11 +158,11 @@ async function run() {
 
     //Search products by name or category
     app.get("/search/products", async (req, res) => {
-      const { name, category } = req.query;
+      const { searchKey } = req.query;
       const query = {
         $or: [
-          { name: { $regex: name, $options: "i" } },
-          { category: { $regex: category, $options: "i" } },
+          { name: { $regex: searchKey, $options: "i" } },
+          { category: { $regex: searchKey, $options: "i" } },
         ],
       };
 
@@ -172,6 +172,42 @@ async function run() {
       } catch (error) {
         console.error("Error searching products:", error);
         res.status(500).send({ message: "Failed to search products" });
+      }
+    });
+
+    // Search orders by orderId, customerEmail, or Mobile
+    app.get("/search/orders", verifyToken, async (req, res) => {
+      const { searchKey } = req.query;
+      const query = {
+        $or: [],
+      };
+
+      if (searchKey) {
+        try {
+          query.$or.push({ _id: ObjectId.createFromHexString(searchKey) });
+        } catch (error) {
+          // Ignore the error if searchKey is not a valid ObjectId
+        }
+
+        query.$or.push(
+          { customerEmail: { $regex: searchKey, $options: "i" } },
+          { customerMobile: { $regex: searchKey, $options: "i" } }
+        );
+      }
+
+      // If $or is empty, no valid search criteria were added
+      if (query.$or.length === 0) {
+        return res
+          .status(400)
+          .send({ message: "No valid search criteria provided" });
+      }
+
+      try {
+        const orders = await ordersCollection.find(query).toArray();
+        res.send(orders);
+      } catch (error) {
+        console.error("Error searching orders:", error);
+        res.status(500).send({ message: "Failed to search orders" });
       }
     });
 
